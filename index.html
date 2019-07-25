@@ -2,8 +2,8 @@
 <html>
 <head>
   <title>LM Chat Room</title>
-  <script src="https://unpkg.com/vue"></script>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/native-toast@2.0.0/dist/native-toast.css">
 </head>
 <body>
 <div id="chat" class="container">
@@ -43,9 +43,11 @@
   </form>
 </div>
 
+<script src="https://unpkg.com/vue"></script>
 <script src="https://www.gstatic.com/firebasejs/6.3.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/6.3.1/firebase-database.js"></script>
 <script src="firebase.config.js"></script>
+<script src="https://unpkg.com/native-toast@2.0.0/dist/native-toast.min.js"></script>
 <script type="text/javascript">
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig)
@@ -87,14 +89,36 @@
 
     created () {
       // value = snapshot.val() | key = snapshot.key
-      messagesRef.on('child_added', snapshot => this.messages.push({...snapshot.val(), id: snapshot.key}))
+      messagesRef.on('child_added', snapshot => {
+        this.messages.push({...snapshot.val(), id: snapshot.key})
+        if (snapshot.val().nickname !== this.nickname) {
+          nativeToast({
+            message: `${snapshot.val().nickname} says: "${snapshot.val().text}"`,
+            rounded: true,
+            type: 'success'
+          })
+        }
+      })
       messagesRef.on('child_removed', snapshot => {
         const deletedMessageIndex = this.messages.findIndex(message => message.id === snapshot.key)
         this.messages.splice(deletedMessageIndex, 1)
+        if (snapshot.val().nickname !== this.nickname) {
+          nativeToast({
+            message: `${snapshot.val().nickname} deleted a message.`,
+            rounded: true,
+            type: 'error'
+          })
+        }
       })
       messagesRef.on('child_changed', snapshot => {
         const updatedMessage = this.messages.find(message => message.id === snapshot.key)
         updatedMessage.text = snapshot.val().text
+        if (snapshot.val().nickname !== this.nickname) {
+          nativeToast({
+            message: `${snapshot.val().nickname} edited a message: "${snapshot.val().text}"`,
+            rounded: true
+          })
+        }
       })
     }
   })
